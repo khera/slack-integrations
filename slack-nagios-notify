@@ -1,14 +1,20 @@
 #! /usr/local/bin/perl
 use strict;
 
+# Time-stamp: "03 March 2014, 16:55:39 (khera@yertle.int.kcilink.com)"
+
 use HTTP::Request::Common qw(POST);
 use LWP::UserAgent;
 use JSON;
 use Getopt::Std;
 
+## CUSTOMIZE
+
 my $domain = 'mygroup.slack.com';
 my $token = 'XXXX';                 # from Incoming Webhooks Integration
 my $default_channel = '#technical'; # override with -C flag.
+
+## END CUSTOMIZE
 
 =pod
 
