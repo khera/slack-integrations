@@ -1,0 +1,186 @@
+#! /usr/local/bin/perl
+use strict;
+
+use HTTP::Request::Common qw(POST);
+use LWP::UserAgent;
+use JSON;
+use Getopt::Std;
+
+my $domain = 'mygroup.slack.com';
+my $token = 'XXXX';                 # from Incoming Webhooks Integration
+my $default_channel = '#technical'; # override with -C flag.
+
+=pod
+
+=head1 slack-nagios-notify
+
+Post a nagios notificaion message to a channel in a slack.com group using the
+"Incoming Webhooks" integration.
+
+Expected integration in Nagios is to define a notifier for services
+and for hosts like these:
+
+  define command {
+    command_name    notify-slack
+    command_line    /usr/local/sbin/slack-nagios-notify -t "$NOTIFICATIONTYPE$" -a "$HOSTALIAS$" -d "$SERVICEDESC$" -w "$SHORTDATETIME$" -s "$SERVICESTATE$" -o "$SERVICEOUTPUT$" -u "$SERVICEACKAUTHOR$" -c "$SERVICEACKCOMMENT$"
+  }
+
+  define command {
+    command_name    host-notify-slack
+    command_line    /usr/local/sbin/slack-nagios-notify -t "$NOTIFICATIONTYPE$" -a "$HOSTALIAS$" -d "host" -w "$SHORTDATETIME$" -s "$SERVICESTATE$" -o "$SERVICEOUTPUT$" -u "$SERVICEACKAUTHOR$" -c "$SERVICEACKCOMMENT$"
+  }
+
+Then add a user named C<slack> to be notified using these notifier commands:
+
+ define contact {
+   contact_name                    slack
+   alias                           Slack App
+   service_notification_period     24x7
+   host_notification_period        24x7
+   service_notification_options    w,u,c,r
+   host_notification_options       d,u,r
+   service_notification_commands   notify-slack
+   host_notification_commands      host-notify-slack
+   email                           slack@example.com
+ }
+
+And finally, add the user C<slack> to whatever notifications you need.
+
+To configure Slack, you need to enable the Incoming Webhooks
+integration. The C<$token> variable at the top of this script needs to
+be set to the token from that integration, and the C<$domain> needs to
+be your Slack domain name for your group.
+
+=cut
+
+# parse command line for pieces of nagios notification to fill into
+# message. they correspond to nagios notification string variables:
+#
+# -C channel
+# -t $NOTIFICATIONTYPE$
+# -a $HOSTALIAS$
+# -d $SERVICEDESC$ (optional)
+# -w $SHORTDATETIME$
+# -s $SERVICESTATE$
+# -o $SERVICEOUTPUT$
+# -u $SERVICEACKAUTHOR$ (optional)
+# -c $SERVICEACKCOMMENT$ (optional)
+
+my %opts;
+getopts('C:t:a:d:w:s:o:u:c:',\%opts);
+
+my $payload = {
+	       channel => $opts{C} // $default_channel,
+	       username => 'nagios',
+	       icon_emoji => ':construction:',
+	       text => $opts{t},
+             };
+
+if (not exists $opts{t}) {
+  die "must specify -t\n";
+
+} elsif ($opts{t} eq 'PROBLEM') {
+  $payload->{text} .= ' :scream:';
+  $payload->{attachments} = [
+    {
+      fallback => "$opts{a}/$opts{d} $opts{w} State: $opts{s} $opts{o}",
+      pretext => "Host $opts{a} at $opts{w}",
+      text => "Service: $opts{d}",
+      color => 'danger',
+      fields => [
+        {
+          title => 'State',
+          value => $opts{s},
+          short => 'false',
+        },
+        {
+          title => 'Detail',
+          value => $opts{o},
+          short => 'false',
+        }
+      ],                        # fields
+    },                          # attachment 1
+  ];
+
+} elsif ($opts{t} eq 'RECOVERY') {
+  $payload->{text} .= ' :smiley:';
+  $payload->{attachments} = [
+    {
+      fallback => "$opts{a}/$opts{d} $opts{w} State: $opts{o}",
+      pretext => "Host $opts{a} at $opts{w}",
+      text => "Service: $opts{d}",
+      color => 'good',
+      fields => [
+        {
+          title => 'Detail',
+          value => $opts{o},
+          short => 'false',
+        }
+      ],                        # fields
+    },                          # attachment 1
+  ];
+
+} elsif ($opts{t} eq 'ACKNOWLEDGEMENT') {
+  $payload->{text} .= ' :wrench:';
+  $payload->{attachments} = [
+    {
+      fallback => "$opts{a}/$opts{d} $opts{w} State: $opts{s} $opts{o}",
+      pretext => "Host $opts{a} at $opts{w}",
+      text => "Service: $opts{d}",
+      color => 'danger',
+      fields => [
+        {
+          title => 'State',
+          value => $opts{s},
+          short => 'false',
+        },
+        {
+          title => 'Detail',
+          value => $opts{o},
+          short => 'false',
+        }
+      ],                        # fields
+    },                          # attachment 1
+
+    {
+      fallback => "$opts{u} $opts{c}",
+      pretext => "$opts{c}",
+      color => 'warning',
+      fields => [
+        {
+          title => 'Handled By',
+          value => $opts{u},
+          short => 'true',
+        },
+      ],                        # fields
+    },                          # attachment 2
+  ];
+} else { # something unknown, just display it flat.
+  $payload->{icon_emoji} = ':thumbsdown:';
+  $payload->{color} = 'danger';
+  $payload->{text} = "$opts{t} $opts{a}/$opts{d} $opts{w} State: $opts{s} $opts{o} $opts{u} $opts{c}";
+}
+
+
+my $ua = LWP::UserAgent->new;
+$ua->timeout(15);
+
+my $req = POST("https://${domain}/services/hooks/incoming-webhook?token=${token}", ['payload' => encode_json($payload)]);
+
+my $resp = $ua->request($req);
+
+if ($resp->is_success) {
+  #print $resp->decoded_content;  # or whatever
+}
+else {
+  die $resp->status_line;
+}
+exit(0);
+
+=pod
+
+=head1 COPYRIGHT
+
+Copyright 2014 Vick Khera <vivek@mailermailer.com>
+
+=cut
