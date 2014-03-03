@@ -1,7 +1,7 @@
 #! /usr/local/bin/perl
 use strict;
 
-# Time-stamp: "03 March 2014, 17:23:13 (khera@yertle.int.kcilink.com)"
+# Time-stamp: "03 March 2014, 18:36:11 (khera@yertle.int.kcilink.com)"
 
 use HTTP::Request::Common qw(POST);
 use LWP::UserAgent;
@@ -28,12 +28,12 @@ and for hosts like these:
 
   define command {
     command_name    notify-slack
-    command_line    /usr/local/sbin/slack-nagios-notify -t "$NOTIFICATIONTYPE$" -a "$HOSTALIAS$" -d "$SERVICEDESC$" -w "$SHORTDATETIME$" -s "$SERVICESTATE$" -o "$SERVICEOUTPUT$" -u "$SERVICEACKAUTHOR$" -c "$SERVICEACKCOMMENT$"
+    command_line    /usr/local/sbin/slack-nagios-notify -C $CONTACTEMAIL$ -t "$NOTIFICATIONTYPE$" -a "$HOSTALIAS$" -d "$SERVICEDESC$" -w "$SHORTDATETIME$" -s "$SERVICESTATE$" -o "$SERVICEOUTPUT$" -u "$SERVICEACKAUTHOR$" -c "$SERVICEACKCOMMENT$"
   }
 
   define command {
     command_name    host-notify-slack
-    command_line    /usr/local/sbin/slack-nagios-notify -t "$NOTIFICATIONTYPE$" -a "$HOSTALIAS$" -d "host" -w "$SHORTDATETIME$" -s "$SERVICESTATE$" -o "$SERVICEOUTPUT$" -u "$SERVICEACKAUTHOR$" -c "$SERVICEACKCOMMENT$"
+    command_line    /usr/local/sbin/slack-nagios-notify -C $CONTACTEMAIL$ -t "$NOTIFICATIONTYPE$" -a "$HOSTALIAS$" -d "host" -w "$SHORTDATETIME$" -s "$SERVICESTATE$" -o "$SERVICEOUTPUT$" -u "$SERVICEACKAUTHOR$" -c "$SERVICEACKCOMMENT$"
   }
 
 Then add a user named C<slack> to be notified using these notifier commands:
@@ -47,10 +47,13 @@ Then add a user named C<slack> to be notified using these notifier commands:
    host_notification_options       d,u,r
    service_notification_commands   notify-slack
    host_notification_commands      host-notify-slack
-   email                           slack@example.com
+   email                           #general
  }
 
-And finally, add the user C<slack> to whatever notifications you need.
+The C<email> in the contact is the channel name to post the notification for
+this contact.
+
+And finally, add this new user C<slack> to whatever notifications you need.
 
 To configure Slack, you need to enable the Incoming Webhooks
 integration. The C<$token> variable at the top of this script needs to
