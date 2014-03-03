@@ -1,6 +1,6 @@
 #! /usr/local/bin/perl
 
-# Time-stamp: "03 March 2014, 18:04:18 (khera@yertle.int.kcilink.com)"
+# Time-stamp: "03 March 2014, 18:15:30 (khera@yertle.int.kcilink.com)"
 
 =head1 NAME
 
@@ -94,8 +94,6 @@ $ua->timeout(15);
 my ($domain,$token) = split /,/,$opts->{slack_credentials};
 
 my $req = POST("https://${domain}/services/hooks/subversion?token=${token}", ['payload' => encode_json($payload)]);
-
-print $req->as_string,"\n"; exit(0);
 
 my $resp = $ua->request($req);
 
