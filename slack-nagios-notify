@@ -1,7 +1,7 @@
 #! /usr/local/bin/perl
 use strict;
 
-# Time-stamp: "03 March 2014, 16:55:39 (khera@yertle.int.kcilink.com)"
+# Time-stamp: "03 March 2014, 17:23:13 (khera@yertle.int.kcilink.com)"
 
 use HTTP::Request::Common qw(POST);
 use LWP::UserAgent;
@@ -65,12 +65,12 @@ be your Slack domain name for your group.
 # -C channel
 # -t $NOTIFICATIONTYPE$
 # -a $HOSTALIAS$
-# -d $SERVICEDESC$ (optional)
+# -d $SERVICEDESC$
 # -w $SHORTDATETIME$
 # -s $SERVICESTATE$
 # -o $SERVICEOUTPUT$
-# -u $SERVICEACKAUTHOR$ (optional)
-# -c $SERVICEACKCOMMENT$ (optional)
+# -u $SERVICEACKAUTHOR$ (used if ACK type)
+# -c $SERVICEACKCOMMENT$ (used if ACK type)
 
 my %opts;
 getopts('C:t:a:d:w:s:o:u:c:',\%opts);
