@@ -1,0 +1,193 @@
+#! /usr/local/bin/perl
+
+# Time-stamp: "03 March 2014, 18:04:18 (khera@yertle.int.kcilink.com)"
+
+=head1 NAME
+
+slack-subversion - Add svn commit log message to Slack channel
+
+=head1 SYNOPSIS
+
+ slack-subversion --repos-path "$REPOS" --revision "$REV" \
+  --revision-url "http://projects/svnweb/index.cgi/rwde/revision?rev=%s" \
+  --slack-credentials domain,key
+
+=head1 OPTIONS
+
+Required:
+
+ --repos-path PATH		Path to SVN repository.
+ --revision REV			SVN commit rev number.
+ --slack-credentials dom,key	Domain and Key for Slack integration.
+
+Optional:
+
+ --revision-url URL		Include link to specified Revision URL.
+ --svnlook PATH			Location of the svnlook executable.
+ -V --verbose			Incremental verbose mode.
+ -h --help			Print this usage statement and exit.
+ -v --version			Print the version number and exit.
+
+
+=head1 DESCRIPTION
+
+Add the commit message from the specified revision to Slack via the SVN
+integration. The channel is specified by the configuration in Slack.
+
+It is expected that this program be called from a post-commit hook script.
+
+=head1 COPYRIGHT
+
+Copyright 2014 Vick Khera <vivek@mailermailer.com>
+
+=cut
+
+use Getopt::Long;
+use File::Which;
+use HTTP::Request::Common qw(POST);
+use LWP::UserAgent;
+use JSON;
+
+our $opts = get_options() or die "failed to process options";
+
+# handle version
+if (delete $opts->{version}) {
+  print "slack-subversion version $VERSION\n";
+  exit;
+}
+
+# display help message if not all params are given, or if asked.
+require Pod::Usage && Pod::Usage::pod2usage(
+    '-verbose'  => 99,
+    '-sections' => '(?i:(Synopsis|Options))',
+    '-exitval'  => 0,
+) if $opts->{help}
+  or not($opts->{'repos_path'} and $opts->{'revision'}
+	 and $opts->{'slack_credentials'});
+
+unless ($opts->{svnlook}) {
+  die "Unable to find svnlook binary. Specify --svnlook parameter.\n";
+}
+
+
+# now get the info we need, and prepare the message.
+
+my $contents = prepare_contents();
+
+my $view_url = '';
+if ($opts->{revision_url}) {
+  $view_url = sprintf($opts->{revision_url},$opts->{revision});
+}
+
+# push notification to slack
+
+my $payload = {
+  revision => $opts->{revision},
+  url => $view_url,
+  author => $contents->{author},
+  log => $contents->{message},
+};
+
+my $ua = LWP::UserAgent->new;
+$ua->timeout(15);
+
+my ($domain,$token) = split /,/,$opts->{slack_credentials};
+
+my $req = POST("https://${domain}/services/hooks/subversion?token=${token}", ['payload' => encode_json($payload)]);
+
+print $req->as_string,"\n"; exit(0);
+
+my $resp = $ua->request($req);
+
+if ($resp->is_success) {
+  #print $resp->decoded_content;
+}
+else {
+  die $resp->status_line;
+}
+
+exit(0);
+
+
+
+
+# parse the command line parameters
+#
+sub get_options {
+  my $opts = {};
+
+  # defaults
+  $opts->{svnlook} = which('svnlook') || $ENV{SVNLOOK};
+
+  GetOptions(
+	     'repos-path|p=s' => \$opts->{repos_path},
+	     'revision|r=s' => \$opts->{revision},
+	     'revision-url=s' => \$opts->{revision_url},
+	     'slack-credentials=s' => \$opts->{slack_credentials},
+
+	     'svnlook=s' => \$opts->{svnlook},
+	     'verbose|V+' => \$opts->{verbose},
+	     'help|h' => \$opts->{help},
+	     'version|v' => \$opts->{version},
+	    ) or return;
+
+  return $opts;
+}
+
+
+# _pipe() and _read_pipe() methods taken from SVN::Notify module
+
+##############################################################################
+# This method forks off a process to execute an external program and any
+# associated arguments and returns a file handle that can be read from to
+# fetch the output of the external program, or written to. Pass "-|" as the
+# sole argument to read from another process (such as svnlook), and pass "|-"
+# to write to another process (such as sendmail).
+##############################################################################
+
+sub _pipe {
+  my $mode = shift;
+  # Safer version of backtick (see perlipc(1)).
+  local *PIPE;
+
+  my $pid = open PIPE, $mode;
+  die "Cannot fork: $!\n" unless defined $pid;
+
+  if ($pid) {
+    # Parent process. Return the file handle.
+    return *PIPE;
+  } else {
+    # Child process. Execute the commands.
+    exec @_ or die "Cannot exec $_[0]: $!\n";
+    # Not reached.
+  }
+}
+
+##############################################################################
+# This method passes its arguments to _pipe() in read mode, but then
+# fetches each line of output from the returned file handle, safely
+# strips out any newlines and carriage returns, and returns an array
+# reference of those lines.
+##############################################################################
+
+sub _read_pipe {
+  my $fh = _pipe( '-|', @_ );
+  local $/; my @lines = split /(?:\r\n|\r|\n)/, <$fh>;
+  close $fh or warn "Child process exited: $?\n";
+  return \@lines;
+}
+
+
+sub prepare_contents {
+  my $c = {};
+
+  my $lines = _read_pipe($opts->{svnlook}, 'info', $opts->{repos_path},
+			 '-r', $opts->{revision});
+
+  $c->{author} = shift @$lines;
+  $c->{date} = shift @$lines;
+  $c->{message_size} = shift @$lines;
+  $c->{message} = join("\n",@$lines);
+
+  return $c;
+}
