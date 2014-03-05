@@ -1,7 +1,7 @@
 #! /usr/local/bin/perl
 use strict;
 
-# Time-stamp: "03 March 2014, 18:36:11 (khera@yertle.int.kcilink.com)"
+# Time-stamp: "04 March 2014, 21:52:56 (khera@yertle.int.kcilink.com)"
 
 use HTTP::Request::Common qw(POST);
 use LWP::UserAgent;
@@ -47,7 +47,7 @@ Then add a user named C<slack> to be notified using these notifier commands:
    host_notification_options       d,u,r
    service_notification_commands   notify-slack
    host_notification_commands      host-notify-slack
-   email                           #general
+   email                           \#general
  }
 
 The C<email> in the contact is the channel name to post the notification for
