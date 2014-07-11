@@ -1,7 +1,7 @@
 #! /usr/local/bin/perl
 use strict;
 
-# Time-stamp: "04 March 2014, 21:52:56 (khera@yertle.int.kcilink.com)"
+# Time-stamp: "11 July 2014, 09:55:23 (khera@yertle.int.kcilink.com)"
 
 use HTTP::Request::Common qw(POST);
 use LWP::UserAgent;
@@ -165,7 +165,6 @@ if (not exists $opts{t}) {
     },                          # attachment 2
   ];
 } else { # something unknown, just display it flat.
-  $payload->{icon_emoji} = ':thumbsdown:';
   $payload->{color} = 'danger';
   $payload->{text} = "$opts{t} $opts{a}/$opts{d} $opts{w} State: $opts{s} $opts{o} $opts{u} $opts{c}";
 }
