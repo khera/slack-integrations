@@ -1,7 +1,9 @@
-#! /usr/local/bin/perl
+#!/usr/bin/perl
+
 use strict;
 
 # Time-stamp: "11 July 2014, 09:55:23 (khera@yertle.int.kcilink.com)"
+# Forked and altered: "05 May 2015, 13:43 (andypuettmann@gmail.com)"
 
 use HTTP::Request::Common qw(POST);
 use LWP::UserAgent;
@@ -10,9 +12,9 @@ use Getopt::Std;
 
 ## CUSTOMIZE
 
-my $domain = 'mygroup.slack.com';
-my $token = 'XXXX';                 # from Incoming Webhooks Integration
-my $default_channel = '#technical'; # override with -C flag.
+my $posturl = 'https://hooks.slack.com/services/T00000000/B00000000/xxxxxxxxxxxxxxxxxxxxxxxx';                 # from Incoming Webhooks Integration
+
+my $default_channel = '#general'; # override with -C flag.
 
 ## END CUSTOMIZE
 
@@ -173,7 +175,8 @@ if (not exists $opts{t}) {
 my $ua = LWP::UserAgent->new;
 $ua->timeout(15);
 
-my $req = POST("https://${domain}/services/hooks/incoming-webhook?token=${token}", ['payload' => encode_json($payload)]);
+my $req = POST("${posturl}", ['payload' => encode_json($payload)]);
+
 
 my $resp = $ua->request($req);
 
