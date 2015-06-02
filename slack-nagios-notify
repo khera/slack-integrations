@@ -1,7 +1,10 @@
-#! /usr/local/bin/perl
+#!/usr/bin/perl
+
 use strict;
 
-# Time-stamp: "11 July 2014, 09:55:23 (khera@yertle.int.kcilink.com)"
+# Time-stamp: 		"11 July 2014, 09:55:23 (khera@yertle.int.kcilink.com)"
+# Forked and altered: 	"05 May 2015, 13:43 (andypuettmann@gmail.com)"
+# Last updated:		"05 May 2015, 15:41 (andypuettmann@gmail.com)"
 
 use HTTP::Request::Common qw(POST);
 use LWP::UserAgent;
@@ -10,9 +13,9 @@ use Getopt::Std;
 
 ## CUSTOMIZE
 
-my $domain = 'mygroup.slack.com';
-my $token = 'XXXX';                 # from Incoming Webhooks Integration
-my $default_channel = '#technical'; # override with -C flag.
+my $posturl = 'https://hooks.slack.com/services/T0000000/B00000000/xxxxxxxxxxxxxxxxxxxxxxxx';                 # from Incoming Webhooks Integration
+
+my $default_channel = '#general'; # override with -C flag.
 
 ## END CUSTOMIZE
 
@@ -74,14 +77,15 @@ be your Slack domain name for your group.
 # -o $SERVICEOUTPUT$
 # -u $SERVICEACKAUTHOR$ (used if ACK type)
 # -c $SERVICEACKCOMMENT$ (used if ACK type)
+# -n $NOTIFICATIONCOMMENT$
 
 my %opts;
-getopts('C:t:a:d:w:s:o:u:c:',\%opts);
+getopts('C:t:a:d:w:s:o:u:c:n:',\%opts);
 
 my $payload = {
 	       channel => $opts{C} // $default_channel,
 	       username => 'nagios',
-	       icon_emoji => ':construction:',
+	       icon_emoji => ':nagios:',
 	       text => $opts{t},
              };
 
@@ -92,11 +96,19 @@ if (not exists $opts{t}) {
   $payload->{text} .= ' :scream:';
   $payload->{attachments} = [
     {
-      fallback => "$opts{a}/$opts{d} $opts{w} State: $opts{s} $opts{o}",
-      pretext => "Host $opts{a} at $opts{w}",
-      text => "Service: $opts{d}",
+      fallback => "Problem: $opts{a}/$opts{d}  State: $opts{s} $opts{o}",
       color => 'danger',
       fields => [
+        {
+          title => 'Host',
+          value => $opts{a},
+          short => 'false',
+        },
+        {
+          title => 'Service',
+          value => $opts{d},
+          short => 'false',
+        },
         {
           title => 'State',
           value => $opts{s},
@@ -110,34 +122,23 @@ if (not exists $opts{t}) {
       ],                        # fields
     },                          # attachment 1
   ];
-
 } elsif ($opts{t} eq 'RECOVERY') {
   $payload->{text} .= ' :smiley:';
   $payload->{attachments} = [
     {
-      fallback => "$opts{a}/$opts{d} $opts{w} State: $opts{o}",
-      pretext => "Host $opts{a} at $opts{w}",
-      text => "Service: $opts{d}",
+      fallback => "Recovery: $opts{a}/$opts{d}  State: $opts{s} $opts{o}",
       color => 'good',
       fields => [
         {
-          title => 'Detail',
-          value => $opts{o},
+          title => 'Host',
+          value => $opts{a},
           short => 'false',
-        }
-      ],                        # fields
-    },                          # attachment 1
-  ];
-
-} elsif ($opts{t} eq 'ACKNOWLEDGEMENT') {
-  $payload->{text} .= ' :wrench:';
-  $payload->{attachments} = [
-    {
-      fallback => "$opts{a}/$opts{d} $opts{w} State: $opts{s} $opts{o}",
-      pretext => "Host $opts{a} at $opts{w}",
-      text => "Service: $opts{d}",
-      color => 'danger',
-      fields => [
+        },
+        {
+          title => 'Service',
+          value => $opts{d},
+          short => 'false',
+        },
         {
           title => 'State',
           value => $opts{s},
@@ -150,20 +151,231 @@ if (not exists $opts{t}) {
         }
       ],                        # fields
     },                          # attachment 1
-
+  ];
+} elsif ($opts{t} eq 'ACKNOWLEDGEMENT') {
+  $payload->{text} .= ' :wrench:';
+  $payload->{attachments} = [
     {
-      fallback => "$opts{u} $opts{c}",
-      pretext => "$opts{c}",
+      fallback => "Acknowledged: $opts{a}/$opts{d}  State: $opts{s} $opts{o}",
+      pretext => "Host $opts{a} at $opts{w}",
+      text => "Service: $opts{d}",
       color => 'warning',
       fields => [
         {
-          title => 'Handled By',
+          title => 'Host',
+          value => $opts{a},
+          short => 'false',
+        },
+        {
+          title => 'Service',
+          value => $opts{d},
+          short => 'false',
+        },
+        {
+          title => 'State',
+          value => $opts{s},
+          short => 'false',
+        },
+        {
+          title => 'Detail',
+          value => $opts{o},
+          short => 'false',
+        },
+        {
+          title => 'Is now being handled by',
           value => $opts{u},
-          short => 'true',
+          short => 'false',
         },
       ],                        # fields
-    },                          # attachment 2
+    },                          # attachment 1
   ];
+} elsif ($opts{t} eq 'CUSTOM') {
+  $payload->{text} .= ' :alien:';
+  $payload->{attachments} = [
+    {
+      fallback => "Manual Notification: $opts{a}/$opts{d}  State: $opts{s} $opts{o}",
+      color => '#D3D3D3',
+      fields => [
+        {
+          title => 'Host',
+          value => $opts{a},
+          short => 'false',
+        },
+        {
+          title => 'Service',
+          value => $opts{d},
+          short => 'false',
+        },
+        {
+          title => 'State',
+          value => 'Manually Triggered Notification',
+          short => 'false',
+        },
+        {
+          title => 'Detail',
+          value => $opts{o},
+          short => 'false',
+        }
+      ],                        # fields
+    },                          # attachment 1
+  ];
+
+} elsif ($opts{t} eq 'DOWNTIMESTART') {
+  $payload->{text} .= ' :construction:';
+  $payload->{attachments} = [
+    {
+      fallback => "Downtime: $opts{a}/$opts{d}  State: Is now in a planned downtime (notifications disabled)",
+      color => '#7C19FF',
+      fields => [
+        {
+          title => 'Host',
+          value => $opts{a},
+          short => 'false',
+        },
+        {
+          title => 'Service',
+          value => $opts{d},
+          short => 'false',
+        },
+        {
+          title => 'State',
+          value => 'Is now in a planned downtime (notifications disabled)',
+          short => 'false',
+        }
+      ],                        # fields
+    },                          # attachment 1
+  ];
+
+} elsif ($opts{t} eq 'DOWNTIMEEND') {
+  $payload->{text} .= ' :construction:';
+  $payload->{attachments} = [
+    {
+      fallback => "Downtime: $opts{a}/$opts{d}  State: Downtime ended by schedule (notifications enabled)",
+      color => '#7C19FF',
+      fields => [
+        {
+          title => 'Host',
+          value => $opts{a},
+          short => 'false',
+        },
+        {
+          title => 'Service',
+          value => $opts{d},
+          short => 'false',
+        },
+        {
+          title => 'State',
+          value => 'Downtime ended by schedule (notifications enabled)',
+          short => 'false',
+        }
+      ],                        # fields
+    },                          # attachment 1
+  ];
+
+} elsif ($opts{t} eq 'DOWNTIMECANCELLED') {
+  $payload->{text} .= ' :construction:';
+  $payload->{attachments} = [
+    {
+      fallback => "Downtime: $opts{a}/$opts{d}  State: Downtime has been cancelled (notifications enabled)",
+      color => '#7C19FF',
+      fields => [
+        {
+          title => 'Host',
+          value => $opts{a},
+          short => 'false',
+        },
+        {
+          title => 'Service',
+          value => $opts{d},
+          short => 'false',
+        },
+        {
+          title => 'State',
+          value => 'Downtime has been cancelled (notifications enabled)',
+          short => 'false',
+        }
+      ],                        # fields
+    },                          # attachment 1
+  ];
+
+} elsif ($opts{t} eq 'FLAPPINGSTART') {
+  $payload->{text} .= ' :skull:';
+  $payload->{attachments} = [
+    {
+      fallback => "Flapping: $opts{a}/$opts{d}  State: Service detected flapping (notifications disabled)",
+      color => '#19FFF4',
+      fields => [
+        {
+          title => 'Host',
+          value => $opts{a},
+          short => 'false',
+        },
+        {
+          title => 'Service',
+          value => $opts{d},
+          short => 'false',
+        },
+        {
+          title => 'State',
+          value => 'Service detected flapping (notifications disabled)',
+          short => 'false',
+        }
+      ],                        # fields
+    },                          # attachment 1
+  ];
+
+} elsif ($opts{t} eq 'FLAPPINGSTOP') {
+  $payload->{text} .= ' :skull:';
+  $payload->{attachments} = [
+    {
+      fallback => "Flapping: $opts{a}/$opts{d}  State: Service stopped flapping (notifications enabled)",
+      color => 'good',
+      fields => [
+        {
+          title => 'Host',
+          value => $opts{a},
+          short => 'false',
+        },
+        {
+          title => 'Service',
+          value => $opts{d},
+          short => 'false',
+        },
+        {
+          title => 'State',
+          value => 'Service stopped flapping (notifications enabled)',
+          short => 'false',
+        }
+      ],                        # fields
+    },                          # attachment 1
+  ];
+
+} elsif ($opts{t} eq 'FLAPPINGDISABLED') {
+  $payload->{text} .= ' :wrench:';
+  $payload->{attachments} = [
+    {
+      fallback => "Flapping: $opts{a}/$opts{d}  State: Flapping detection turned off (notifications enabled)",
+      color => '#19FFF4',
+      fields => [
+        {
+          title => 'Host',
+          value => $opts{a},
+          short => 'false',
+        },
+        {
+          title => 'Service',
+          value => $opts{d},
+          short => 'false',
+        },
+        {
+          title => 'State',
+          value => 'Flapping detection turned off (notifications enabled)',
+          short => 'false',
+        }
+      ],                        # fields
+    },                          # attachment 1
+  ];
+
 } else { # something unknown, just display it flat.
   $payload->{color} = 'danger';
   $payload->{text} = "$opts{t} $opts{a}/$opts{d} $opts{w} State: $opts{s} $opts{o} $opts{u} $opts{c}";
@@ -173,7 +385,8 @@ if (not exists $opts{t}) {
 my $ua = LWP::UserAgent->new;
 $ua->timeout(15);
 
-my $req = POST("https://${domain}/services/hooks/incoming-webhook?token=${token}", ['payload' => encode_json($payload)]);
+my $req = POST("${posturl}", ['payload' => encode_json($payload)]);
+
 
 my $resp = $ua->request($req);
 
