@@ -1,10 +1,8 @@
-#!/usr/bin/perl
+#!/usr/local/bin/perl
 
 use strict;
 
-# Time-stamp: 		"11 July 2014, 09:55:23 (khera@yertle.int.kcilink.com)"
-# Forked and altered: 	"05 May 2015, 13:43 (andypuettmann@gmail.com)"
-# Last updated:		"05 May 2015, 15:41 (andypuettmann@gmail.com)"
+# Time-stamp: 		"02 June 2015, 09:58:05 (khera@yertle.int.kcilink.com)"
 
 use HTTP::Request::Common qw(POST);
 use LWP::UserAgent;
@@ -85,7 +83,7 @@ getopts('C:t:a:d:w:s:o:u:c:n:',\%opts);
 my $payload = {
 	       channel => $opts{C} // $default_channel,
 	       username => 'nagios',
-	       icon_emoji => ':nagios:',
+	       icon_emoji => ':construction:',
 	       text => $opts{t},
              };
 
@@ -402,6 +400,8 @@ exit(0);
 
 =head1 COPYRIGHT
 
-Copyright 2014 Vick Khera <vivek@mailermailer.com>
+Copyright Vick Khera <vivek@mailermailer.com>,
+Andy Puettmann <andypuettmann@gmail.com>
+
 
 =cut
