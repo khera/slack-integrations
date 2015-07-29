@@ -34,7 +34,7 @@ and for hosts like these:
 
   define command {
     command_name    host-notify-slack
-    command_line    /usr/local/sbin/slack-nagios-notify -C $CONTACTEMAIL$ -t "$NOTIFICATIONTYPE$" -a "$HOSTALIAS$" -d "host" -w "$SHORTDATETIME$" -s "$SERVICESTATE$" -o "$SERVICEOUTPUT$" -u "$SERVICEACKAUTHOR$" -c "$SERVICEACKCOMMENT$"
+    command_line    /usr/local/sbin/slack-nagios-notify -C $CONTACTEMAIL$ -t "$NOTIFICATIONTYPE$" -a "$HOSTALIAS$" -d "host" -w "$SHORTDATETIME$" -s "$HOSTSTATE$" -o "$HOSTOUTPUT$" -u "$HOSTACKAUTHOR$" -c "$HOSTACKCOMMENT$"
   }
 
 Then add a user named C<slack> to be notified using these notifier commands:
