@@ -382,7 +382,7 @@ if (not exists $opts{t}) {
 
 my $ua = LWP::UserAgent->new;
 $ua->timeout(15);
-$ua->envx_proxy;
+$ua->env_proxy;
 
 my $req = POST("${posturl}", ['payload' => encode_json($payload)]);
 
