@@ -382,6 +382,7 @@ if (not exists $opts{t}) {
 
 my $ua = LWP::UserAgent->new;
 $ua->timeout(15);
+$ua->envx_proxy;
 
 my $req = POST("${posturl}", ['payload' => encode_json($payload)]);
 
@@ -390,9 +391,8 @@ my $resp = $ua->request($req);
 
 if ($resp->is_success) {
   #print $resp->decoded_content;  # or whatever
-}
-else {
-  die $resp->status_line;
+} else {
+  die "code: ".$resp->code.", status line: ".$resp->status_line;
 }
 exit(0);
 
