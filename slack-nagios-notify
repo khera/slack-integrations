@@ -57,9 +57,8 @@ this contact.
 And finally, add this new user C<slack> to whatever notifications you need.
 
 To configure Slack, you need to enable the Incoming Webhooks
-integration. The C<$token> variable at the top of this script needs to
-be set to the token from that integration, and the C<$domain> needs to
-be your Slack domain name for your group.
+integration. The C<$posturl> variable in the configuration section at the top
+of this script needs to be set to the URL shown in that integration page.
 
 =cut
 
