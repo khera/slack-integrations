@@ -15,6 +15,8 @@ my $posturl = 'https://hooks.slack.com/services/T0000000/B00000000/xxxxxxxxxxxxx
 
 my $default_channel = '#general'; # override with -C flag.
 
+my $mention=q("<!here>"); #channel mentions, example <!here> or <!channel>
+
 ## END CUSTOMIZE
 
 =pod
@@ -83,7 +85,7 @@ my $payload = {
 	       channel => $opts{C} // $default_channel,
 	       username => 'nagios',
 	       icon_emoji => ':construction:',
-	       text => $opts{t},
+	       text => $mention . ' ' . $opts{t},
              };
 
 if (not exists $opts{t}) {
